@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Crop Rotation Planning Agent | CSP & Dynamic Replanning System</title>
+  <meta name="description" content="AI-Based Crop Rotation Planning System using Constraint Satisfaction Problems (CSP), Heuristic Search, and Dynamic Replanning under Environmental Uncertainties.">
+  
+  <!-- Modern Typography from Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Chart.js for Interactive Visual Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <link rel="stylesheet" href="styles.css?v=2.1">
+</head>
+<body class="theme-dark">
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-brand">
+      <div class="brand-icon">
+        <i data-lucide="sprout"></i>
+      </div>
+      <div class="brand-text">
+        <div class="brand-title">AgriPlan AI</div>
+        <div class="brand-subtitle">Crop Rotation Planning Agent &bull; CSP Closed-Loop Decision System</div>
+      </div>
+    </div>
+
+    <!-- Quick Scenario Presets in Navbar (Clean Dropdown + Actions) -->
+    <div class="nav-center-controls">
+      <div class="nav-dropdown-wrapper">
+        <label for="navPresetSelect" class="nav-select-label">
+          <i data-lucide="sparkles"></i> Benchmark Scenario:
+        </label>
+        <select id="navPresetSelect" class="form-select nav-select">
+          <option value="semi_arid_deccan">Semi-Arid Deccan Plateau</option>
+          <option value="indo_gangetic">Indo-Gangetic Alluvial Plain</option>
+          <option value="commercial_horticulture">Commercial Diversified Farm</option>
+          <option value="drought_stressed_sandy">Drought-Stressed Rainfed Plot</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="nav-actions">
+      <button class="btn btn-outline" id="openKbBtn">
+        <i data-lucide="book-open"></i> Crop Knowledge Base
+      </button>
+      <button class="btn btn-icon theme-toggle-btn" id="themeToggleBtn" title="Toggle Light/Dark Theme">
+        <i data-lucide="sun" class="sun-icon"></i>
+        <i data-lucide="moon" class="moon-icon"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Dedicated Scenario Showcase Shelf (Spacious & Cleanly Organized) -->
+  <section class="scenario-showcase-bar">
+    <div class="showcase-inner">
+      <div class="showcase-header">
+        <div class="showcase-badge"><i data-lucide="compass"></i> Explore Regional Scenarios</div>
+        <div class="showcase-hint">Select a real-world agro-climatic profile to immediately solve the CSP and simulate multi-season dynamics:</div>
+      </div>
+      <div class="scenario-cards-track" id="scenarioCardsTrack">
+        <!-- Rendered dynamically as 4 spacious, interactive benchmark cards -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Container -->
+  <main class="app-layout">
+    <!-- Left Column: Input Control Panel & CSP Inspector -->
+    <aside class="sidebar-panel">
+      <div class="panel-card input-card">
+        <div class="card-header">
+          <div class="header-icon"><i data-lucide="sliders"></i></div>
+          <div>
+            <h2>Farm &amp; Environmental Inputs</h2>
+            <p class="section-desc">Define plot parameters and shared resource ceilings</p>
+          </div>
+        </div>
+
+        <form id="planningForm" class="control-form">
+          <!-- Section 1: Plot Parameters -->
+          <div class="form-section-box">
+            <div class="form-section-title"><i data-lucide="map-pin"></i> Plot Parameters</div>
+            
+            <!-- Land Size -->
+            <div class="form-group">
+              <div class="label-row">
+                <label for="landSize"><i data-lucide="maximize-2"></i> Land Size</label>
+                <span class="input-val-badge" id="landSizeDisplay">2.0 Acres</span>
+              </div>
+              <input type="range" id="landSize" name="land_size_acres" min="0.5" max="10.0" step="0.5" value="2.0" class="range-slider">
+            </div>
+
+            <!-- Soil Type -->
+            <div class="form-group">
+              <label for="soilType"><i data-lucide="layers"></i> Soil Type</label>
+              <select id="soilType" name="soil_type" class="form-select">
+                <option value="Loamy">Loamy Soil (Balanced, High Fertility)</option>
+                <option value="Black Cotton" selected>Black Cotton Soil (Moisture Retentive)</option>
+                <option value="Alluvial">Alluvial Soil (Nutrient Rich, Versatile)</option>
+                <option value="Sandy">Sandy Soil (High Drainage, Light)</option>
+                <option value="Clayey">Clayey Soil (Heavy, High Water Capacity)</option>
+                <option value="Red Sandy Loam">Red Sandy Loam (Low-to-Medium Fertility)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Section 2: Shared Resource Ceilings -->
+          <div class="form-section-box">
+            <div class="form-section-title"><i data-lucide="database"></i> Resource Ceilings</div>
+            
+            <div class="form-row-2">
+              <!-- Water Budget -->
+              <div class="form-group">
+                <div class="label-row">
+                  <label for="waterBudget"><i data-lucide="droplets"></i> Water (mm)</label>
+                  <span class="live-feasibility-tag" id="waterFeasibilityBadge"></span>
+                </div>
+                <input type="number" id="waterBudget" name="water_budget_mm" min="300" max="4000" step="50" value="900" class="form-input">
+                <small class="hint-text" id="waterFeasibilityHint">Total across seasons</small>
+              </div>
+
+              <!-- Cost Budget -->
+              <div class="form-group">
+                <div class="label-row">
+                  <label for="costBudget"><i data-lucide="indian-rupee"></i> Budget (₹)</label>
+                  <span class="live-feasibility-tag" id="budgetFeasibilityBadge"></span>
+                </div>
+                <input type="number" id="costBudget" name="cost_budget" min="10000" max="500000" step="5000" value="70000" class="form-input">
+                <small class="hint-text" id="budgetFeasibilityHint">Plot capital ceiling</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3: Horizon & Initial Biological State -->
+          <div class="form-section-box">
+            <div class="form-section-title"><i data-lucide="calendar"></i> Horizon &amp; Soil State</div>
+
+            <!-- Number of Seasons -->
+            <div class="form-group">
+              <label><i data-lucide="clock"></i> Number of Seasons</label>
+              <div class="season-pill-selector" id="seasonPills">
+                <button type="button" class="pill-btn" data-seasons="2">2</button>
+                <button type="button" class="pill-btn active" data-seasons="3">3</button>
+                <button type="button" class="pill-btn" data-seasons="4">4</button>
+                <button type="button" class="pill-btn" data-seasons="5">5</button>
+                <button type="button" class="pill-btn" data-seasons="6">6</button>
+              </div>
+              <input type="hidden" id="seasonsCount" name="seasons_count" value="3">
+            </div>
+
+            <!-- Initial Soil Health -->
+            <div class="form-group">
+              <div class="label-row">
+                <label for="initialSoilHealth"><i data-lucide="heart-pulse"></i> Initial Soil Health</label>
+                <span class="input-val-badge badge-health" id="soilHealthDisplay">55 / 100</span>
+              </div>
+              <input type="range" id="initialSoilHealth" name="initial_soil_health" min="20" max="95" step="5" value="55" class="range-slider">
+              <div class="slider-ticks">
+                <span>Depleted (20)</span>
+                <span>Moderate (55)</span>
+                <span>Optimal (95)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-block btn-lg" id="generatePlanBtn">
+              <i data-lucide="cpu"></i> Generate Optimal Rotation Plan
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- CSP Solver Diagnostic Engine Card -->
+      <div class="panel-card csp-stats-card" id="cspStatsCard">
+        <div class="card-header mini-header">
+          <div class="header-icon"><i data-lucide="git-branch"></i></div>
+          <div>
+            <h3>CSP Search Engine Diagnostics</h3>
+            <p class="section-desc">Backtracking &amp; forward checking analytics</p>
+          </div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-label">Valid Plans Found</div>
+            <div class="stat-value text-accent" id="statValidPlans">-</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Search Nodes Explored</div>
+            <div class="stat-value" id="statNodesExplored">-</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Family Conflicts Pruned</div>
+            <div class="stat-value text-warning" id="statFamilyPruned">-</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Water Overruns Pruned</div>
+            <div class="stat-value text-info" id="statWaterPruned">-</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Cost Overruns Pruned</div>
+            <div class="stat-value text-danger" id="statCostPruned">-</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Candidate Crop Pool</div>
+            <div class="stat-value" id="statDomainSize">-</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Right Column: Results, Timeline, Simulation Lab & Analytics -->
+    <section class="main-content">
+      <!-- Loading State Overlay -->
+      <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <div class="loading-title">Solving Constraint Satisfaction Problem...</div>
+        <div class="loading-desc">Pruning violating sequences &amp; evaluating multi-attribute heuristic scores</div>
+      </div>
+
+      <!-- Empty / Initial State Placeholder -->
+      <div id="emptyState" class="empty-state">
+        <div class="empty-icon"><i data-lucide="compass"></i></div>
+        <h2>Ready to Plan Your Sustainable Crop Rotation</h2>
+        <p>Set your farm constraints on the left or select a pre-configured agricultural scenario above to generate an agronomically optimized multi-season crop sequence.</p>
+        <button class="btn btn-primary btn-lg" id="emptyGenerateBtn">
+          <i data-lucide="play"></i> Run First Optimization
+        </button>
+      </div>
+
+      <!-- Constraint Conflict Resolution Panel (Shown when constraints are unsatisfiable) -->
+      <div id="conflictState" class="conflict-state-panel hidden">
+        <div class="conflict-card">
+          <div class="conflict-header">
+            <div class="conflict-icon-box">
+              <i data-lucide="alert-octagon"></i>
+            </div>
+            <div class="conflict-header-text">
+              <div class="conflict-badge"><i data-lucide="shield-alert"></i> Constraint Conflict Detected</div>
+              <h2 id="conflictTitle">Resource Limits Too Low for Selected Plot Size</h2>
+              <p class="conflict-subtitle" id="conflictSubtitle">Backtracking search pruned all candidates — inputs violate physical cultivation costs or water limits.</p>
+            </div>
+          </div>
+
+          <!-- Comparison Grid: Provided vs Theoretical Minimum -->
+          <div class="conflict-metrics-grid">
+            <div class="conflict-metric-item" id="conflictCostCard">
+              <div class="conflict-metric-top">
+                <span class="c-label"><i data-lucide="indian-rupee"></i> Capital Budget Deficit</span>
+                <span class="c-status-badge badge-deficit" id="conflictCostBadge">Deficit: -₹102,000</span>
+              </div>
+              <div class="c-metric-row">
+                <div class="c-metric-col">
+                  <small>Provided Budget:</small>
+                  <strong class="text-danger" id="conflictCostProvided">₹30,000</strong>
+                </div>
+                <div class="c-arrow">&rarr;</div>
+                <div class="c-metric-col">
+                  <small id="conflictCostReqLabel">Min. Required (5.0 Ac &bull; 3 S):</small>
+                  <strong class="text-amber" id="conflictCostRequired">₹132,000</strong>
+                </div>
+              </div>
+              <p class="c-metric-explanation" id="conflictCostExplanation">
+                Even the lowest-input crop for this soil costs more than the allocated capital across all seasons.
+              </p>
+            </div>
+
+            <div class="conflict-metric-item" id="conflictWaterCard">
+              <div class="conflict-metric-top">
+                <span class="c-label"><i data-lucide="droplets"></i> Irrigation Water Budget</span>
+                <span class="c-status-badge badge-sufficient" id="conflictWaterBadge">Sufficient</span>
+              </div>
+              <div class="c-metric-row">
+                <div class="c-metric-col">
+                  <small>Provided Water:</small>
+                  <strong class="text-emerald" id="conflictWaterProvided">1550 mm</strong>
+                </div>
+                <div class="c-arrow">&rarr;</div>
+                <div class="c-metric-col">
+                  <small id="conflictWaterReqLabel">Min. Required:</small>
+                  <strong class="text-emerald" id="conflictWaterRequired">660 mm</strong>
+                </div>
+              </div>
+              <p class="c-metric-explanation" id="conflictWaterExplanation">
+                Water budget is adequate for the selected seasons.
+              </p>
+            </div>
+          </div>
+
+          <!-- 1-Click Actionable Resolution Fixes -->
+          <div class="conflict-actions-box">
+            <div class="conflict-actions-title">
+              <i data-lucide="sparkles"></i> Recommended Automated Fixes (1-Click Application):
+            </div>
+            <div class="conflict-buttons-grid">
+              <button type="button" class="btn btn-primary conflict-btn" id="conflictFixBudgetBtn">
+                <i data-lucide="zap"></i>
+                <div class="btn-text-block">
+                  <span class="btn-main-action">Auto-Adjust Budget to <span id="conflictBtnBudgetText">₹132,000</span></span>
+                  <small class="btn-sub-action">Set budget to viable minimum for current land &amp; seasons</small>
+                </div>
+              </button>
+
+              <button type="button" class="btn btn-outline conflict-btn" id="conflictFixLandBtn">
+                <i data-lucide="maximize-2"></i>
+                <div class="btn-text-block">
+                  <span class="btn-main-action">Downscale Land to <span id="conflictBtnLandText">1.1 Acres</span></span>
+                  <small class="btn-sub-action">Keep current budget, scale down plot size to affordable level</small>
+                </div>
+              </button>
+
+              <button type="button" class="btn btn-outline conflict-btn" id="conflictFixSeasonsBtn">
+                <i data-lucide="calendar"></i>
+                <div class="btn-text-block">
+                  <span class="btn-main-action">Reduce to 2 Seasons (<span id="conflictBtnSeasonsCostText">₹88,000</span>)</span>
+                  <small class="btn-sub-action">Shorten horizon to reduce total cultivation cost</small>
+                </div>
+              </button>
+
+              <button type="button" class="btn btn-ghost conflict-btn" id="conflictResetPresetBtn">
+                <i data-lucide="rotate-ccw"></i>
+                <div class="btn-text-block">
+                  <span class="btn-main-action">Load Balanced Benchmark Preset</span>
+                  <small class="btn-sub-action">Reset to tested baseline parameters</small>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Results Container (Shown when plan is generated) -->
+      <div id="resultsContainer" class="results-container hidden">
+
+        <!-- Header Ribbon: Selected Plan Score & Alternate Switcher -->
+        <div class="plan-header-ribbon">
+          <div class="plan-title-block">
+            <div class="badge-row">
+              <span class="badge badge-success"><i data-lucide="check-circle"></i> CSP Compliant</span>
+              <span class="badge badge-primary"><i data-lucide="award"></i> Heuristic Utility: <strong id="ribbonScore">94.5</strong>/100</span>
+              <span class="badge badge-neutral" id="ribbonFamiliesCount">3 Unique Families</span>
+            </div>
+            <h1 class="plan-main-title">Optimal Crop Rotation Strategy</h1>
+            <p class="plan-subtitle" id="ribbonSubtitle">Alternating Nitrogen-Fixing Legumes &amp; Nutri-Cereals to maintain soil health</p>
+          </div>
+
+          <!-- Alternatives Tab Bar -->
+          <div class="plan-switcher" id="planSwitcherContainer">
+            <span class="switcher-label"><i data-lucide="layers"></i> Candidate Plans:</span>
+            <div class="switcher-tabs" id="planTabs">
+              <!-- Dynamically populated tabs: Plan A (Recommended), Plan B, Plan C -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Metric Cards Grid (Spacious 4-Card Deck) -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-icon bg-emerald"><i data-lucide="banknote"></i></div>
+            <div class="metric-body">
+              <div class="metric-label">Estimated Net Profit</div>
+              <div class="metric-value text-emerald" id="metricProfit">₹0</div>
+              <div class="metric-sub" id="metricRoi">ROI: 0%</div>
+            </div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-icon bg-blue"><i data-lucide="droplet"></i></div>
+            <div class="metric-body">
+              <div class="metric-label">Water Consumption</div>
+              <div class="metric-value text-blue" id="metricWater">0 mm</div>
+              <div class="metric-sub" id="metricWaterRemaining">0 mm safety buffer</div>
+            </div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-icon bg-amber"><i data-lucide="wallet"></i></div>
+            <div class="metric-body">
+              <div class="metric-label">Total Cultivation Cost</div>
+              <div class="metric-value text-amber" id="metricCost">₹0</div>
+              <div class="metric-sub" id="metricCostRemaining">₹0 budget buffer</div>
+            </div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-icon bg-green"><i data-lucide="leaf"></i></div>
+            <div class="metric-body">
+              <div class="metric-label">Soil Health Impact</div>
+              <div class="metric-value text-green" id="metricSoilScore">65 &rarr; 78</div>
+              <div class="metric-sub" id="metricNitrogenDelta">+45 kg/ha Net Nitrogen</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Rotation Timeline Cards -->
+        <div class="content-section">
+          <div class="section-title-row">
+            <div>
+              <h2><i data-lucide="milestone"></i> Multi-Season Rotation Sequence</h2>
+              <p class="section-desc">Agronomic chronology designed to break disease vectors, restore soil nitrogen, and maximize farm income</p>
+            </div>
+            <div class="legend-pills">
+              <span class="legend-pill legume-pill"><span class="dot"></span> Legume (N-Fixer)</span>
+              <span class="legend-pill cereal-pill"><span class="dot"></span> Cereal / Grass (Feeder)</span>
+              <span class="legend-pill crucifer-pill"><span class="dot"></span> Biofumigant / Other</span>
+            </div>
+          </div>
+
+          <!-- Cards Timeline -->
+          <div class="rotation-timeline" id="rotationTimeline">
+            <!-- Dynamically populated season cards with connecting flow arrows -->
+          </div>
+        </div>
+
+        <!-- Section: Interactive Simulation & Closed-Loop Replanning Lab -->
+        <div class="content-section simulation-lab-section">
+          <div class="section-title-row">
+            <div>
+              <h2><i data-lucide="activity"></i> Closed-Loop Simulation &amp; Replanning Lab</h2>
+              <p class="section-desc">Simulate season progression, inject real-world disruptions (drought / pest swarms), and observe automatic CSP replanning</p>
+            </div>
+            <div class="sim-status-badge" id="simStatusBadge">
+              <span class="status-indicator ready"></span> Simulation Ready (Season 1 of 3)
+            </div>
+          </div>
+
+          <!-- Simulation Stepper Track -->
+          <div class="sim-stepper-track" id="simStepperTrack">
+            <!-- Stepper nodes rendered dynamically -->
+          </div>
+
+          <!-- Disruption & Action Bar -->
+          <div class="sim-controls-bar">
+            <div class="control-actions-left">
+              <button class="btn btn-primary btn-md" id="simNextSeasonBtn">
+                <i data-lucide="play-circle"></i> Simulate Next Season
+              </button>
+              <button class="btn btn-outline btn-md" id="simAutoRunBtn">
+                <i data-lucide="fast-forward"></i> Auto-Run Full Cycle
+              </button>
+            </div>
+
+            <div class="control-actions-right">
+              <span class="disruption-label"><i data-lucide="alert-triangle"></i> Inject Disruption:</span>
+              <button class="btn btn-danger-outline btn-md" id="triggerDroughtBtn" title="Reduces remaining water budget by 45% and triggers automated CSP replanning">
+                <i data-lucide="sun-medium"></i> Mid-Season Drought
+              </button>
+              <button class="btn btn-warning-outline btn-md" id="triggerPestBtn" title="Infects current crop family with pests, quarantines that family, and forces replanning">
+                <i data-lucide="bug"></i> Pest Outbreak
+              </button>
+              <button class="btn btn-ghost btn-md" id="simResetBtn" title="Reset simulation state to Season 1">
+                <i data-lucide="rotate-ccw"></i> Reset
+              </button>
+            </div>
+          </div>
+
+          <!-- Dynamic Replanning Alert Notification Banner (Hidden unless replan occurs) -->
+          <div class="replan-alert-banner hidden" id="replanAlertBanner">
+            <div class="alert-icon-box"><i data-lucide="refresh-cw" class="spin-slow"></i></div>
+            <div class="alert-content">
+              <div class="alert-badge">Closed-Loop Replanning Triggered</div>
+              <h3 class="alert-title" id="replanTitle">Drought Event Detected in Season 2</h3>
+              <p class="alert-desc" id="replanDesc">
+                Available water budget dropped significantly. CSP search re-evaluated uncultivated seasons and adapted the crop sequence.
+              </p>
+              <div class="replan-diff-box" id="replanDiffBox">
+                <!-- Old remaining vs New remaining comparison pills -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Completed Seasons Execution Log -->
+          <div class="history-log-container hidden" id="historyLogContainer">
+            <h4><i data-lucide="file-text"></i> Seasonal Execution Ledger</h4>
+            <div class="history-table-wrapper">
+              <table class="history-table" id="historyTable">
+                <thead>
+                  <tr>
+                    <th>Season</th>
+                    <th>Crop Planted</th>
+                    <th>Soil Health</th>
+                    <th>Water Used</th>
+                    <th>Cultivation Cost</th>
+                    <th>Harvest Revenue</th>
+                    <th>Net Profit</th>
+                    <th>Disruptions / Events</th>
+                  </tr>
+                </thead>
+                <tbody id="historyTableBody">
+                  <!-- Log entries -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Interactive Visual Analytics & Trends -->
+        <div class="content-section">
+          <div class="section-title-row">
+            <div>
+              <h2><i data-lucide="line-chart"></i> Visual Analytics &amp; Agronomic Trends</h2>
+              <p class="section-desc">Tracking dynamic soil preservation, economic performance, and resource burn-down across seasons</p>
+            </div>
+          </div>
+
+          <div class="charts-grid">
+            <!-- Chart 1: Soil Health Trajectory -->
+            <div class="chart-card">
+              <div class="chart-header">
+                <div class="chart-title"><i data-lucide="activity"></i> Soil Health &amp; Nitrogen Trajectory</div>
+                <span class="chart-badge">Dynamic Index (0-100)</span>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="soilHealthChart"></canvas>
+              </div>
+            </div>
+
+            <!-- Chart 2: Seasonal Economics -->
+            <div class="chart-card">
+              <div class="chart-header">
+                <div class="chart-title"><i data-lucide="bar-chart-3"></i> Seasonal Revenue, Cost &amp; Profit</div>
+                <span class="chart-badge">Financials (₹)</span>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="economicsChart"></canvas>
+              </div>
+            </div>
+
+            <!-- Chart 3: Resource Burn-down -->
+            <div class="chart-card full-width-chart">
+              <div class="chart-header">
+                <div class="chart-title"><i data-lucide="gauge"></i> Resource Utilization vs. Farm Budgets</div>
+                <span class="chart-badge">Water &amp; Capital Ceilings</span>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="resourceChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <!-- Knowledge Base Modal Drawer -->
+  <div class="modal-backdrop hidden" id="kbModal">
+    <div class="modal-dialog kb-modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title-row">
+          <div class="header-icon"><i data-lucide="book-marked"></i></div>
+          <div>
+            <h2>Crop Knowledge Base Explorer</h2>
+            <p class="section-desc">Agronomic database of 22 regional crops with multi-dimensional constraint parameters</p>
+          </div>
+        </div>
+        <button class="modal-close-btn" id="closeKbBtn"><i data-lucide="x"></i></button>
+      </div>
+
+      <!-- KB Filters Bar -->
+      <div class="kb-filters-bar">
+        <div class="search-input-box">
+          <i data-lucide="search"></i>
+          <input type="text" id="kbSearchInput" placeholder="Search crops by name, category, or benefit..." class="form-input">
+        </div>
+        <div class="filter-dropdowns">
+          <select id="kbFamilyFilter" class="form-select filter-select">
+            <option value="ALL">All Botanical Families</option>
+            <option value="Fabaceae">Fabaceae (Legumes / N-Fixers)</option>
+            <option value="Poaceae">Poaceae (Cereals &amp; Grasses)</option>
+            <option value="Solanaceae">Solanaceae (Nightshades)</option>
+            <option value="Brassicaceae">Brassicaceae (Crucifers / Biofumigants)</option>
+            <option value="Malvaceae">Malvaceae (Cotton / Mallows)</option>
+            <option value="Asteraceae">Asteraceae (Composites)</option>
+            <option value="Cucurbitaceae">Cucurbitaceae (Gourds)</option>
+            <option value="Alliaceae">Alliaceae (Alliums)</option>
+          </select>
+          <select id="kbSoilFilter" class="form-select filter-select">
+            <option value="ALL">All Soil Types</option>
+            <option value="Loamy">Loamy</option>
+            <option value="Clayey">Clayey</option>
+            <option value="Sandy">Sandy</option>
+            <option value="Black Cotton">Black Cotton</option>
+            <option value="Alluvial">Alluvial</option>
+            <option value="Red Sandy Loam">Red Sandy Loam</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- KB Cards Grid -->
+      <div class="kb-cards-grid" id="kbCardsGrid">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <footer class="app-footer">
+    <div class="footer-content">
+      <span>AI-Based Crop Rotation Planning System &bull; Semester AI Project</span>
+      <span class="footer-tech">CSP Backtracking &bull; Heuristic Search &bull; Replanning Under Uncertainty</span>
+    </div>
+  </footer>
+
+  <script src="app.js?v=2.1"></script>
+</body>
+</html>
