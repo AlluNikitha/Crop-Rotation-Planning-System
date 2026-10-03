@@ -1,6 +1,10 @@
 # AI-Based Crop Rotation Planning System
 > **Closed-Loop Agricultural Decision-Support Agent using Constraint Satisfaction, Heuristic Informed Search & Planning Under Uncertainty**
 
+## Live Demo
+Visit the deployed application here:
+https://crop-rotation-planning-system.vercel.app/
+
 ---
 
 ## 1. Why We Chose This Problem
